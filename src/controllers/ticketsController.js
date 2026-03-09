@@ -1,0 +1,107 @@
+const pool = require('../db/pool')
+
+const createTicket = async (req, res) => {
+  const { title, description, category_id, priority } = req.body
+  const { user_id, tenant_id } = req.user
+
+  try {
+    const ticket = await pool.query(
+      `INSERT INTO tickets (tenant_id, created_by, category_id, title, description, priority)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [tenant_id, user_id, category_id, title, description, priority || 'medium']
+    )
+
+    await pool.query(
+      `INSERT INTO ticket_events (ticket_id, user_id, event_type, new_value)
+       VALUES ($1, $2, $3, $4)`,
+      [ticket.rows[0].id, user_id, 'created', { status: 'open' }]
+    )
+
+    res.status(201).json(ticket.rows[0])
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+const getTickets = async (req, res) => {
+  const { tenant_id } = req.user
+  const { status, priority } = req.query
+
+  try {
+    let query = `SELECT t.*, u.name as created_by_name 
+                 FROM tickets t 
+                 JOIN users u ON t.created_by = u.id
+                 WHERE t.tenant_id = $1`
+    const params = [tenant_id]
+
+    if (status) {
+      params.push(status)
+      query += ` AND t.status = $${params.length}`
+    }
+
+    if (priority) {
+      params.push(priority)
+      query += ` AND t.priority = $${params.length}`
+    }
+
+    query += ' ORDER BY t.created_at DESC'
+
+    const result = await pool.query(query, params)
+    res.json({ data: result.rows, total: result.rows.length })
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+const getTicketById = async (req, res) => {
+  const { tenant_id } = req.user
+  const { id } = req.params
+
+  try {
+    const ticket = await pool.query(
+      `SELECT t.*, u.name as created_by_name 
+       FROM tickets t 
+       JOIN users u ON t.created_by = u.id
+       WHERE t.id = $1 AND t.tenant_id = $2`,
+      [id, tenant_id]
+    )
+
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: 'Ticket no encontrado' })
+    }
+
+    const comments = await pool.query(
+      `SELECT c.*, u.name as author 
+       FROM comments c 
+       JOIN users u ON c.user_id = u.id
+       WHERE c.ticket_id = $1 AND c.is_internal = false
+       ORDER BY c.created_at ASC`,
+      [id]
+    )
+
+    const events = await pool.query(
+      `SELECT e.*, u.name as by 
+       FROM ticket_events e 
+       JOIN users u ON e.user_id = u.id
+       WHERE e.ticket_id = $1 
+       ORDER BY e.created_at ASC`,
+      [id]
+    )
+
+    res.json({
+      ...ticket.rows[0],
+      comments: comments.rows,
+      events: events.rows
+    })
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+module.exports = { createTicket, getTickets, getTicketById }
