@@ -164,4 +164,95 @@ const assignTicket = async (req, res) => {
   }
 }
 
-module.exports = { createTicket, getTickets, getTicketById, assignTicket }
+const addComment = async (req, res) => {
+  const { user_id, tenant_id } = req.user
+  const { id } = req.params
+  const { body, is_internal } = req.body
+
+  try {
+    // Verificar que el ticket pertenece al tenant
+    const ticket = await pool.query(
+      'SELECT * FROM tickets WHERE id = $1 AND tenant_id = $2',
+      [id, tenant_id]
+    )
+
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: 'Ticket no encontrado' })
+    }
+
+    const comment = await pool.query(
+      `INSERT INTO comments (ticket_id, user_id, body, is_internal)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [id, user_id, body, is_internal || false]
+    )
+
+    // Registrar evento
+    await pool.query(
+      `INSERT INTO ticket_events (ticket_id, user_id, event_type, new_value)
+       VALUES ($1, $2, $3, $4)`,
+      [id, user_id, 'comment_added', { is_internal: is_internal || false }]
+    )
+
+    res.status(201).json(comment.rows[0])
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+const changeStatus = async (req, res) => {
+  const { user_id, tenant_id } = req.user
+  const { id } = req.params
+  const { status } = req.body
+
+  const validStatuses = ['open', 'in_progress', 'resolved', 'closed']
+
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({ error: `Estado inválido. Usa: ${validStatuses.join(', ')}` })
+  }
+
+  try {
+    const ticket = await pool.query(
+      'SELECT * FROM tickets WHERE id = $1 AND tenant_id = $2',
+      [id, tenant_id]
+    )
+
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: 'Ticket no encontrado' })
+    }
+
+    const old_status = ticket.rows[0].status
+
+    const updated = await pool.query(
+      `UPDATE tickets 
+       SET status = $1, closed_at = $2
+       WHERE id = $3 RETURNING *`,
+      [status, status === 'closed' ? new Date() : null, id]
+    )
+
+    // Registrar evento
+    await pool.query(
+      `INSERT INTO ticket_events (ticket_id, user_id, event_type, old_value, new_value)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, user_id, 'status_changed',
+        { status: old_status },
+        { status }
+      ]
+    )
+
+    res.json({
+      success: true,
+      old_status,
+      new_status: status,
+      closed_at: updated.rows[0].closed_at
+    })
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+
+module.exports = { createTicket, getTickets, getTicketById, assignTicket, addComment, changeStatus }
