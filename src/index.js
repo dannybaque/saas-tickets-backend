@@ -9,6 +9,8 @@ app.use(express.json())
 
 const authRoutes = require('./routes/auth')
 const ticketRoutes = require('./routes/tickets')
+const categoriesRoutes = require('./routes/categories')
+app.use('/api/categories', categoriesRoutes)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/tickets', ticketRoutes)
