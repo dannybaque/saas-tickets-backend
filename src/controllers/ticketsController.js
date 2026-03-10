@@ -104,4 +104,64 @@ const getTicketById = async (req, res) => {
   }
 }
 
-module.exports = { createTicket, getTickets, getTicketById }
+const assignTicket = async (req, res) => {
+  const { user_id, tenant_id } = req.user
+  const { id } = req.params
+
+  try {
+    // Verificar que el ticket existe y pertenece al tenant
+    const ticket = await pool.query(
+      'SELECT * FROM tickets WHERE id = $1 AND tenant_id = $2',
+      [id, tenant_id]
+    )
+
+    if (ticket.rows.length === 0) {
+      return res.status(404).json({ error: 'Ticket no encontrado' })
+    }
+
+    if (ticket.rows[0].assigned_to) {
+      return res.status(400).json({ error: 'El ticket ya está asignado' })
+    }
+
+    // Verificar que el rol del usuario puede atender esta categoría
+    const category = await pool.query(
+      `SELECT c.target_role_id, u.role_id 
+       FROM categories c, users u 
+       WHERE c.id = $1 AND u.id = $2`,
+      [ticket.rows[0].category_id, user_id]
+    )
+
+    if (category.rows[0].target_role_id !== category.rows[0].role_id) {
+      return res.status(403).json({ error: 'Tu rol no puede atender este tipo de ticket' })
+    }
+
+    // Asignar ticket
+    const updated = await pool.query(
+      `UPDATE tickets SET assigned_to = $1, status = 'in_progress'
+       WHERE id = $2 RETURNING *`,
+      [user_id, id]
+    )
+
+    // Registrar evento
+    await pool.query(
+      `INSERT INTO ticket_events (ticket_id, user_id, event_type, old_value, new_value)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, user_id, 'assigned',
+        { assigned_to: null, status: 'open' },
+        { assigned_to: user_id, status: 'in_progress' }
+      ]
+    )
+
+    res.json({
+      success: true,
+      assigned_to: user_id,
+      status: updated.rows[0].status
+    })
+
+  } catch (error) {
+    console.error(error)
+    res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
+module.exports = { createTicket, getTickets, getTicketById, assignTicket }
