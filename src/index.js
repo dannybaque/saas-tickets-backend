@@ -10,12 +10,15 @@ app.use(express.json())
 const authRoutes = require('./routes/auth')
 const ticketRoutes = require('./routes/tickets')
 const categoriesRoutes = require('./routes/categories')
+const rolesRoutes = require('./routes/roles')
 app.use('/api/categories', categoriesRoutes)
 const usersRoutes = require('./routes/users')
 app.use('/api/users', usersRoutes)
 
 app.use('/api/auth', authRoutes)
 app.use('/api/tickets', ticketRoutes)
+
+app.use('/api/roles', rolesRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'SaaS Tickets API corriendo' })
