@@ -7,18 +7,17 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 
-const authRoutes = require('./routes/auth')
-const ticketRoutes = require('./routes/tickets')
+const authRoutes       = require('./routes/auth')
+const ticketRoutes     = require('./routes/tickets')
 const categoriesRoutes = require('./routes/categories')
-const rolesRoutes = require('./routes/roles')
+const rolesRoutes      = require('./routes/roles')
+const usersRoutes      = require('./routes/users')
+
+app.use('/api/auth',       authRoutes)
+app.use('/api/tickets',    ticketRoutes)
 app.use('/api/categories', categoriesRoutes)
-const usersRoutes = require('./routes/users')
-app.use('/api/users', usersRoutes)
-
-app.use('/api/auth', authRoutes)
-app.use('/api/tickets', ticketRoutes)
-
-app.use('/api/roles', rolesRoutes)
+app.use('/api/roles',      rolesRoutes)
+app.use('/api/users',      usersRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'SaaS Tickets API corriendo' })
