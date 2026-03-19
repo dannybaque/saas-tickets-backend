@@ -2,15 +2,17 @@ const pool = require('../db/pool')
 const bcrypt = require('bcryptjs')
 require('dotenv').config()
 
-const createUser = async (req,res) =>{
-    const {role_id,email,name,password,is_active} = req.body
+const createUser = async (req, res) => {
+    console.log('Body recibido:', req.body)
+    const {role_id, email, name, password, is_active} = req.body
     const {tenant_id } = req.user
     try {
         // Verificar que el correo no exista
         const existing = await pool.query(
-            'SELECT id FROM users WHERE email = $1',
-            [email]
+            'SELECT id FROM users WHERE email = $1 AND tenant_id = $2',
+            [email, tenant_id]
         )
+
         if (existing.rows.length >0) {
             return res.status(400).json({error: 'Este correo ya esta en uso'})
         }

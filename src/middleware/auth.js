@@ -18,5 +18,17 @@ const authMiddleware = (req, res, next) => {
     return res.status(401).json({ error: 'Token inválido o expirado' })
   }
 }
+const requireLevel = (minLevel) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'No autenticado' })
+    }
+    if (req.user.level < minLevel) {
+      return res.status(403).json({ error: 'No tienes permisos para esta acción' })
+    }
+    next()
+  }
+}
 
-module.exports = authMiddleware
+
+module.exports = {authMiddleware,requireLevel}
