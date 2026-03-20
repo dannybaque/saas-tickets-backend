@@ -35,6 +35,17 @@ const register = async (req, res) => {
     )
     const user_id = user.rows[0].id
 
+        // Crear permisos por defecto para admin
+    const actions = ['create_ticket', 'assign_ticket', 'change_status', 'add_comment', 'manage_users', 'manage_roles', 'manage_categories']
+
+    for (const action of actions) {
+      await pool.query(
+        'INSERT INTO permissions (tenant_id, level, action, allowed) VALUES ($1, $2, $3, $4)',
+        [tenant_id, 99, action, true]
+      )
+    }
+
+
     const token = jwt.sign(
       { user_id, tenant_id, role: 'admin', level: 99 },
       process.env.JWT_SECRET,

@@ -12,12 +12,15 @@ const ticketRoutes     = require('./routes/tickets')
 const categoriesRoutes = require('./routes/categories')
 const rolesRoutes      = require('./routes/roles')
 const usersRoutes      = require('./routes/users')
+const permissionsRoutes = require('./routes/permissions')
+
 
 app.use('/api/auth',       authRoutes)
 app.use('/api/tickets',    ticketRoutes)
 app.use('/api/categories', categoriesRoutes)
 app.use('/api/roles',      rolesRoutes)
 app.use('/api/users',      usersRoutes)
+app.use('/api/permissions', permissionsRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'SaaS Tickets API corriendo' })
