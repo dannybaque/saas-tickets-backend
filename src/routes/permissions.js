@@ -5,7 +5,7 @@ const { getPermissions, upsertPermission } = require('../controllers/permissions
 
 router.use(authMiddleware)
 
-router.get('/',  requireLevel(99), getPermissions)
+router.get('/', getPermissions)
 router.post('/', requireLevel(99), upsertPermission)
 
 module.exports = router
