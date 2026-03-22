@@ -1,5 +1,5 @@
 const pool = require('../db/pool')
-const { sendTicketCreated, sendTicketAssigned, sendStatusChanged } = require('../utils/email')
+const { sendTicketCreated, sendTicketAssigned, sendStatusChanged, sendCommentAdded } = require('../utils/email')
 
 
 const createTicket = async (req, res) => {
@@ -276,6 +276,31 @@ const addComment = async (req, res) => {
        VALUES ($1, $2, $3, $4)`,
       [id, user_id, 'comment_added', { is_internal: is_internal || false }]
     )
+
+          // Notificar al creador del ticket
+      try {
+        const creatorResult = await pool.query(
+          `SELECT u.email, u.name as commenter_name, t2.title
+          FROM users u
+          JOIN tickets t2 ON t2.created_by = u.id
+          WHERE t2.id = $1`,
+          [id]
+        )
+        const commenterResult = await pool.query(
+          'SELECT name FROM users WHERE id = $1',
+          [user_id]
+        )
+        if (creatorResult.rows.length > 0) {
+          await sendCommentAdded({
+            to: creatorResult.rows[0].email,
+            ticketTitle: creatorResult.rows[0].title,
+            commentBy: commenterResult.rows[0].name
+          })
+        }
+      } catch (emailError) {
+        console.error('Error enviando email:', emailError)
+      }
+
 
     res.status(201).json(comment.rows[0])
 
