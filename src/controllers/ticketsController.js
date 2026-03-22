@@ -181,9 +181,18 @@ const assignTicket = async (req, res) => {
       [ticket.rows[0].category_id, user_id]
     )
 
-    if (category.rows[0].target_role_id !== category.rows[0].role_id) {
-      return res.status(403).json({ error: 'Tu rol no puede atender este tipo de ticket' })
+    // Admin puede asignarse cualquier ticket
+    const userLevel = await pool.query(
+      'SELECT r.level FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = $1',
+      [user_id]
+    )
+
+    if (userLevel.rows[0].level !== 99) {
+      if (category.rows[0].target_role_id !== category.rows[0].role_id) {
+        return res.status(403).json({ error: 'Tu rol no puede atender este tipo de ticket' })
+      }
     }
+
 
     // Asignar ticket
     const updated = await pool.query(
