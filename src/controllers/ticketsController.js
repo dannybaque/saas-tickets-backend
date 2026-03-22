@@ -27,7 +27,7 @@ const createTicket = async (req, res) => {
 
 const getTickets = async (req, res) => {
   const { tenant_id } = req.user
-  const { status, priority, search } = req.query
+  const { status, priority, search, page = 1, limit = 10 } = req.query
 
   try {
     let query = `SELECT t.*, u.name as created_by_name 
@@ -51,16 +51,36 @@ const getTickets = async (req, res) => {
       query += ` AND t.title ILIKE $${params.length}`
     }
 
-    query += ' ORDER BY t.created_at DESC'
+    // Contar total
+    const countResult = await pool.query(
+      query.replace(`SELECT t.*, u.name as created_by_name`, 'SELECT COUNT(*)'),
+      params
+    )
+    const total = parseInt(countResult.rows[0].count)
+
+    // Paginación
+    const offset = (page - 1) * limit
+    params.push(limit)
+    query += ` ORDER BY t.created_at DESC LIMIT $${params.length}`
+    params.push(offset)
+    query += ` OFFSET $${params.length}`
 
     const result = await pool.query(query, params)
-    res.json({ data: result.rows, total: result.rows.length })
+
+    res.json({
+      data:       result.rows,
+      total,
+      page:       parseInt(page),
+      limit:      parseInt(limit),
+      totalPages: Math.ceil(total / limit)
+    })
 
   } catch (error) {
     console.error(error)
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }
+
 
 
 const getTicketById = async (req, res) => {
