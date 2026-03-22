@@ -1,4 +1,6 @@
 const pool = require('../db/pool')
+const { sendTicketCreated, sendTicketAssigned, sendStatusChanged } = require('../utils/email')
+
 
 const createTicket = async (req, res) => {
   const { title, description, category_id, priority } = req.body
@@ -16,6 +18,28 @@ const createTicket = async (req, res) => {
        VALUES ($1, $2, $3, $4)`,
       [ticket.rows[0].id, user_id, 'created', { status: 'open' }]
     )
+
+        // Notificar por email
+    try {
+      const adminResult = await pool.query(
+        `SELECT u.email, t.name as tenant_name 
+         FROM users u 
+         JOIN tenants t ON u.tenant_id = t.id
+         WHERE u.tenant_id = $1 AND u.role_id IN (
+           SELECT id FROM roles WHERE tenant_id = $1 AND level = 99
+         ) LIMIT 1`,
+        [tenant_id]
+      )
+      if (adminResult.rows.length > 0) {
+        await sendTicketCreated({
+          to: adminResult.rows[0].email,
+          ticketTitle: title,
+          tenantName: adminResult.rows[0].tenant_name
+        })
+      }
+    } catch (emailError) {
+      console.error('Error enviando email:', emailError)
+    }
 
     res.status(201).json(ticket.rows[0])
 
@@ -178,6 +202,31 @@ const assignTicket = async (req, res) => {
       ]
     )
 
+        // Notificar por email al creador del ticket
+    try {
+      const creatorResult = await pool.query(
+        `SELECT u.email, u.name, t2.title
+         FROM users u
+         JOIN tickets t2 ON t2.created_by = u.id
+         WHERE t2.id = $1`,
+        [id]
+      )
+      const agentResult = await pool.query(
+        'SELECT name FROM users WHERE id = $1',
+        [user_id]
+      )
+      if (creatorResult.rows.length > 0) {
+        await sendTicketAssigned({
+          to: creatorResult.rows[0].email,
+          ticketTitle: creatorResult.rows[0].title,
+          assignedTo: agentResult.rows[0].name
+        })
+      }
+    } catch (emailError) {
+      console.error('Error enviando email:', emailError)
+    }
+
+
     res.json({
       success: true,
       assigned_to: user_id,
@@ -266,6 +315,27 @@ const changeStatus = async (req, res) => {
         { status }
       ]
     )
+
+        // Notificar por email al creador del ticket
+    try {
+      const creatorResult = await pool.query(
+        `SELECT u.email, t2.title
+         FROM users u
+         JOIN tickets t2 ON t2.created_by = u.id
+         WHERE t2.id = $1`,
+        [id]
+      )
+      if (creatorResult.rows.length > 0) {
+        await sendStatusChanged({
+          to: creatorResult.rows[0].email,
+          ticketTitle: creatorResult.rows[0].title,
+          newStatus: status
+        })
+      }
+    } catch (emailError) {
+      console.error('Error enviando email:', emailError)
+    }
+
 
     res.json({
       success: true,
