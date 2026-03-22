@@ -212,7 +212,7 @@ const assignTicket = async (req, res) => {
         [id]
       )
       const agentResult = await pool.query(
-        'SELECT name FROM users WHERE id = $1',
+        'SELECT name, email FROM users WHERE id = $1',
         [user_id]
       )
       if (creatorResult.rows.length > 0) {
@@ -222,9 +222,18 @@ const assignTicket = async (req, res) => {
           assignedTo: agentResult.rows[0].name
         })
       }
+      // Notificar al agente
+      if (agentResult.rows.length > 0) {
+        await sendTicketAssigned({
+          to: agentResult.rows[0].email,
+          ticketTitle: creatorResult.rows[0].title,
+          assignedTo: agentResult.rows[0].name
+        })
+      }
     } catch (emailError) {
       console.error('Error enviando email:', emailError)
     }
+
 
 
     res.json({

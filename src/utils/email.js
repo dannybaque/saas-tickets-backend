@@ -1,9 +1,9 @@
 const { Resend } = require('resend')
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const getResend = () => new Resend(process.env.RESEND_API_KEY)
 
 const sendTicketCreated = async ({ to, ticketTitle, tenantName }) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'onboarding@resend.dev',
     to,
     subject: `Nuevo ticket: ${ticketTitle}`,
@@ -17,7 +17,7 @@ const sendTicketCreated = async ({ to, ticketTitle, tenantName }) => {
 }
 
 const sendTicketAssigned = async ({ to, ticketTitle, assignedTo }) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'onboarding@resend.dev',
     to,
     subject: `Ticket asignado: ${ticketTitle}`,
@@ -30,7 +30,7 @@ const sendTicketAssigned = async ({ to, ticketTitle, assignedTo }) => {
 }
 
 const sendStatusChanged = async ({ to, ticketTitle, newStatus }) => {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: 'onboarding@resend.dev',
     to,
     subject: `Ticket actualizado: ${ticketTitle}`,
