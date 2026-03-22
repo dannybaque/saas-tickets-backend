@@ -33,24 +33,33 @@ const createUser = async (req, res) => {
 
 }
 
-const getUsers = async (req, res) => {
-    const {tenant_id} = req.user
-    try {
-        const users = await pool.query(
-            `SELECT u.id, u.name, u.email, u.is_active, u.created_at, u.updated_at, u.inactive_at,
-                    r.name as role_name, r.level as role_level
-            FROM users u
-            LEFT JOIN roles r ON u.role_id = r.id
-            WHERE u.tenant_id = $1
-            ORDER BY u.created_at ASC`,
-            [tenant_id]
-        )
-        res.json(users.rows)
-    } catch (error) {
-        console.error(error)
-        res.status(500).json({ error: 'Error interno del servidor' })
+    const getUsers = async (req, res) => {
+        const {tenant_id} = req.user
+        const { search } = req.query
+
+        try {
+            let query = `SELECT u.id, u.name, u.email, u.is_active, u.created_at, u.updated_at, u.inactive_at,
+                                r.name as role_name, r.level as role_level
+                        FROM users u
+                        LEFT JOIN roles r ON u.role_id = r.id
+                        WHERE u.tenant_id = $1`
+            const params = [tenant_id]
+
+            if (search) {
+                params.push(`%${search}%`)
+                query += ` AND (u.name ILIKE $${params.length} OR u.email ILIKE $${params.length})`
+            }
+
+            query += ' ORDER BY u.created_at ASC'
+
+            const users = await pool.query(query, params)
+            res.json(users.rows)
+        } catch (error) {
+            console.error(error)
+            res.status(500).json({ error: 'Error interno del servidor' })
+        }
     }
-}
+
 
 const updateStatus = async (req, res) => {
     const { tenant_id } = req.user
