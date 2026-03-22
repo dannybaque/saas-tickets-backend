@@ -27,7 +27,7 @@ const createTicket = async (req, res) => {
 
 const getTickets = async (req, res) => {
   const { tenant_id } = req.user
-  const { status, priority } = req.query
+  const { status, priority, search } = req.query
 
   try {
     let query = `SELECT t.*, u.name as created_by_name 
@@ -46,6 +46,11 @@ const getTickets = async (req, res) => {
       query += ` AND t.priority = $${params.length}`
     }
 
+    if (search) {
+      params.push(`%${search}%`)
+      query += ` AND t.title ILIKE $${params.length}`
+    }
+
     query += ' ORDER BY t.created_at DESC'
 
     const result = await pool.query(query, params)
@@ -56,6 +61,7 @@ const getTickets = async (req, res) => {
     res.status(500).json({ error: 'Error interno del servidor' })
   }
 }
+
 
 const getTicketById = async (req, res) => {
   const { tenant_id } = req.user
