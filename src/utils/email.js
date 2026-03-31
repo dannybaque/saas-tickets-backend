@@ -4,7 +4,7 @@ const getResend = () => new Resend(process.env.RESEND_API_KEY)
 
     const sendTicketCreated = async ({ to, ticketTitle, tenantName }) => {
     await getResend().emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'notificaciones@dysior.com',
         to,
         subject: `Nuevo ticket: ${ticketTitle}`,
         html: `
@@ -18,7 +18,7 @@ const getResend = () => new Resend(process.env.RESEND_API_KEY)
 
     const sendTicketAssigned = async ({ to, ticketTitle, assignedTo }) => {
     await getResend().emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'notificaciones@dysior.com',
         to,
         subject: `Ticket asignado: ${ticketTitle}`,
         html: `
@@ -31,7 +31,7 @@ const getResend = () => new Resend(process.env.RESEND_API_KEY)
 
     const sendStatusChanged = async ({ to, ticketTitle, newStatus }) => {
     await getResend().emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'notificaciones@dysior.com',
         to,
         subject: `Ticket actualizado: ${ticketTitle}`,
         html: `
@@ -44,7 +44,7 @@ const getResend = () => new Resend(process.env.RESEND_API_KEY)
 
     const sendCommentAdded = async ({ to, ticketTitle, commentBy }) => {
     await getResend().emails.send({
-        from: 'onboarding@resend.dev',
+        from: 'notificaciones@dysior.com',
         to,
         subject: `Nuevo comentario en: ${ticketTitle}`,
         html: `
