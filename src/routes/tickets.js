@@ -1,9 +1,10 @@
 const express = require('express')
 const router = express.Router()
-const { authMiddleware, requireLevel } = require('../middleware/auth')
+const { authMiddleware, requireLevel,checkTenantAccess } = require('../middleware/auth')
 const { createTicket, getTickets, getTicketById, assignTicket, addComment, changeStatus } = require('../controllers/ticketsController')
 
 router.use(authMiddleware)
+router.use(checkTenantAccess)
 
 router.get('/',                          getTickets)
 router.post('/',                         createTicket)

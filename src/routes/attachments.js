@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router({ mergeParams: true })
 const multer = require('multer')
-const { authMiddleware } = require('../middleware/auth')
+const { authMiddleware,checkTenantAccess } = require('../middleware/auth')
 const { uploadAttachment, getAttachments, deleteAttachment } = require('../controllers/attachmentsController')
 
 const upload = multer({
@@ -18,6 +18,7 @@ const upload = multer({
 })
 
 router.use(authMiddleware)
+router.use(checkTenantAccess)
 
 router.get('/',                        getAttachments)
 router.post('/', upload.single('file'), uploadAttachment)
