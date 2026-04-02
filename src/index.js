@@ -15,6 +15,9 @@ const usersRoutes       = require('./routes/users')
 const permissionsRoutes = require('./routes/permissions')
 const dashboardRoutes   = require('./routes/dashboard')
 const attachmentsRoutes = require('./routes/attachments')
+const reportsRoutes = require('./routes/reports')
+
+
 
 app.use('/api/auth',                    authRoutes)
 app.use('/api/tickets',                 ticketRoutes)
@@ -24,6 +27,7 @@ app.use('/api/users',                   usersRoutes)
 app.use('/api/permissions',             permissionsRoutes)
 app.use('/api/dashboard',               dashboardRoutes)
 app.use('/api/tickets/:id/attachments', attachmentsRoutes)
+app.use('/api/reports', reportsRoutes)
 
 app.get('/', (req, res) => {
   res.json({ message: 'SaaS Tickets API corriendo' })
